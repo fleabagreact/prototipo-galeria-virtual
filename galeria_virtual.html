@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galeria Virtual — O Avesso do Achamento</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0c0c0c;
+      --panel: rgba(255,255,255,0.06);
+      --panel-2: rgba(255,255,255,0.10);
+      --line: rgba(255,255,255,0.12);
+      --text: #f5f5f5;
+      --muted: rgba(245,245,245,0.7);
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,0.06), transparent 24%),
+        linear-gradient(180deg, #090909 0%, var(--bg) 100%);
+      overflow-x: hidden;
+    }
+
+    .noise::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.06;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mix-blend-mode: screen;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    .hero,
+    .footer-note,
+    .gallery-card,
+    .notice,
+    .legend-modal,
+    .viewer-content {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      border-radius: calc(var(--radius) + 6px);
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+      overflow: hidden;
+      position: relative;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -30px -60px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.26), transparent 68%);
+      filter: blur(3px);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      width: fit-content;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 0.88rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 0 18px rgba(255,255,255,0.8);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 12ch;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.8vw, 1.1rem);
+      max-width: 70ch;
+      line-height: 1.65;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr auto;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .field,
+    .button,
+    .dropzone,
+    .searchbox,
+    .legend-input,
+    .legend-submit,
+    .legend-cancel,
+    .viewer-close {
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+    }
+
+    .field,
+    .searchbox {
+      width: 100%;
+      padding: 16px 18px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .field::placeholder,
+    .searchbox::placeholder,
+    .legend-input::placeholder { color: rgba(255,255,255,0.46); }
+
+    .field:focus,
+    .searchbox:focus,
+    .button:hover,
+    .dropzone:hover,
+    .legend-input:focus,
+    .legend-submit:hover,
+    .legend-cancel:hover,
+    .viewer-close:hover {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+    }
+
+    .button {
+      cursor: pointer;
+      padding: 16px 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .button.primary {
+      background: #fff;
+      color: #000;
+      border-color: transparent;
+    }
+
+    .button.primary:hover {
+      background: #e8e8e8;
+      transform: translateY(-1px) scale(1.01);
+    }
+
+    .button.ghost {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .dropzone {
+      grid-column: 1 / -1;
+      padding: 18px;
+      border-style: dashed;
+      min-height: 96px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 8px;
+      color: var(--muted);
+    }
+
+    .dropzone strong { color: var(--text); }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      min-height: 280px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 30px;
+      color: var(--muted);
+      animation: fadeUp 0.9s ease both;
+    }
+
+    .empty h2 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 1.5rem;
+    }
+
+    .gallery-card {
+      grid-column: span 3;
+      border-radius: 22px;
+      overflow: hidden;
+      position: relative;
+      min-height: 280px;
+      animation: cardIn 0.55s ease both;
+      transform-origin: center;
+    }
+
+    .gallery-card:hover {
+      transform: translateY(-4px) scale(1.01);
+    }
+
+    .image-wrap {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: #101010;
+    }
+
+    .image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: grayscale(1) contrast(1.08) brightness(0.92);
+      transform: scale(1.02);
+      transition: transform 450ms ease, filter 450ms ease;
+    }
+
+    .gallery-card:hover img {
+      transform: scale(1.08);
+      filter: grayscale(1) contrast(1.15) brightness(1);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.92) 100%);
+      pointer-events: none;
+    }
+
+    .card-info {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .title-row h3 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .card-info small {
+      color: rgba(255,255,255,0.65);
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .mini-btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 999px;
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .mini-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.26);
+    }
+
+    .mini-btn.danger {
+      background: rgba(255,255,255,0.95);
+      color: #000;
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    .mini-btn.danger:hover { background: #dcdcdc; }
+
+    .footer-note {
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .toast-area {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: grid;
+      gap: 12px;
+      z-index: 50;
+      width: min(360px, calc(100vw - 40px));
+    }
+
+    .notice {
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: toastIn 280ms ease both, toastOut 280ms ease 2.9s forwards;
+      background: rgba(12,12,12,0.92);
+    }
+
+    .notice .badge {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      margin-top: 4px;
+      background: #fff;
+      box-shadow: 0 0 18px rgba(255,255,255,0.75);
+      flex: 0 0 auto;
+    }
+
+    .notice p {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .notice span {
+      display: block;
+      color: rgba(255,255,255,0.62);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .hidden-input { display: none; }
+
+    .viewer {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: none;
+      place-items: center;
+      z-index: 60;
+      padding: 24px;
+    }
+
+    .viewer.open { display: grid; }
+
+    .viewer-content {
+      width: min(1000px, 96vw);
+      max-height: 92vh;
+      display: grid;
+      gap: 14px;
+      animation: zoomIn 240ms ease both;
+      border-radius: 24px;
+      padding: 14px;
+      background: rgba(15,15,15,0.92);
+    }
+
+    .viewer-img {
+      width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #111;
+      box-shadow: var(--shadow);
+    }
+
+    .viewer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+    }
+
+    .viewer-bar h3 {
+      margin: 0;
+      font-size: 1rem;
+      word-break: break-word;
+    }
+
+    .viewer-close {
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .pulse {
+      animation: pulse 1.7s infinite;
+    }
+
+    .legend-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,0.72);
+      z-index: 70;
+      padding: 20px;
+    }
+
+    .legend-modal.open { display: grid; }
+
+    .legend-dialog {
+      width: min(760px, 100%);
+      border-radius: 28px;
+      padding: 22px;
+      background: rgba(12,12,12,0.94);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+      animation: zoomIn 220ms ease both;
+    }
+
+    .legend-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .legend-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+    }
+
+    .legend-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 58ch;
+    }
+
+    .legend-list {
+      display: grid;
+      gap: 12px;
+      max-height: 50vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .legend-item {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item label {
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.72);
+      word-break: break-word;
+    }
+
+    .legend-input {
+      width: 100%;
+      padding: 14px 16px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .legend-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .legend-submit,
+    .legend-cancel {
+      cursor: pointer;
+      padding: 12px 16px;
+      font-weight: 700;
+    }
+
+    .legend-submit {
+      background: #fff;
+      color: #000;
+      border-color: transparent;
+    }
+
+    .legend-submit:hover { background: #e8e8e8; }
+
+    .legend-cancel {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .legend-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(14px) translateX(14px); }
+      to { opacity: 1; transform: translateY(0) translateX(0); }
+    }
+
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(12px) translateX(14px); }
+    }
+
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.35); }
+      50% { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
+    }
+
+    @media (max-width: 1100px) {
+      .gallery-card { grid-column: span 4; }
+      .controls { grid-template-columns: 1fr 1fr auto; }
+    }
+
+    @media (max-width: 780px) {
+      .app { padding: 16px; }
+      .hero { padding: 20px; }
+      .controls { grid-template-columns: 1fr; }
+      .gallery-card { grid-column: span 6; }
+      .meta-row { gap: 16px; }
+      .legend-dialog { padding: 18px; }
+    }
+
+    @media (max-width: 560px) {
+      .gallery-card { grid-column: span 12; }
+      .viewer { padding: 14px; }
+      .legend-actions { justify-content: stretch; }
+      .legend-submit,
+      .legend-cancel { width: 100%; }
+    }
+  </style>
+</head>
+<body class="noise">
+  <main class="app">
+    <section class="shell">
+      <header class="hero">
+        <div class="eyebrow"><span class="dot"></span> Curadoria virtual • invasão, agência e colonialidade</div>
+        <h1>O Avesso do Achamento</h1>
+        <p>
+          Uma galeria para reunir vestígios, fontes e vozes indígenas em uma narrativa crítica.
+          Faça uploads, dê uma legenda a cada peça e veja tudo em tela cheia.
+        </p>
+
+        <div class="controls">
+          <input id="fileInput" class="field hidden-input" type="file" accept="image/*" multiple />
+          <button class="button primary pulse" id="addBtn">Adicionar imagens</button>
+          <button class="button ghost" id="clearBtn" title="Remove todas as imagens">Limpar galeria</button>
+          <div class="dropzone" id="dropzone">
+            <strong>Arraste imagens para cá</strong>
+            <span>PNG, JPG, WEBP e GIF são aceitos.</span>
+          </div>
+          <input id="searchInput" class="searchbox" type="search" placeholder="Buscar por título na galeria" />
+        </div>
+
+        <div class="meta-row">
+          <div class="chips">
+            <div class="chip" id="countChip">0 imagens</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="gallery" id="gallery">
+        <div class="empty" id="emptyState">
+          <div>
+            <h2>Sua galeria está vazia</h2>
+            <p>Adicione imagens para começar a exposição.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="footer-note">
+        Use a galeria para articular agência política, resistência e crítica ao discurso eurocêntrico.
+      </section>
+    </section>
+  </main>
+
+  <div class="toast-area" id="toastArea" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="viewer" id="viewer" aria-hidden="true">
+    <div class="viewer-content">
+      <img id="viewerImg" class="viewer-img" alt="Visualização ampliada" />
+      <div class="viewer-bar">
+        <h3 id="viewerTitle"></h3>
+        <button class="viewer-close" id="viewerClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend-modal" id="legendModal" aria-hidden="true">
+    <div class="legend-dialog" role="dialog" aria-modal="true" aria-labelledby="legendTitle">
+      <div class="legend-header">
+        <div>
+          <h2 id="legendTitle">Adicionar legenda</h2>
+          <p>Escreva uma legenda para cada imagem antes de entrar na galeria.</p>
+        </div>
+        <button class="viewer-close" id="legendClose" type="button">Fechar</button>
+      </div>
+      <div class="legend-list" id="legendList"></div>
+      <div class="legend-note">As legendas são salvas junto com as imagens adicionadas nesta sessão.</div>
+      <div class="legend-actions">
+        <button class="legend-cancel" id="legendCancel" type="button">Cancelar</button>
+        <button class="legend-submit" id="legendSave" type="button">Salvar legendas</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const dropzone = document.getElementById('dropzone');
+    const gallery = document.getElementById('gallery');
+    const emptyState = document.getElementById('emptyState');
+    const toastArea = document.getElementById('toastArea');
+    const countChip = document.getElementById('countChip');
+    const searchInput = document.getElementById('searchInput');
+    const viewer = document.getElementById('viewer');
+    const viewerImg = document.getElementById('viewerImg');
+    const viewerTitle = document.getElementById('viewerTitle');
+    const viewerClose = document.getElementById('viewerClose');
+
+    const legendModal = document.getElementById('legendModal');
+    const legendList = document.getElementById('legendList');
+    const legendSave = document.getElementById('legendSave');
+    const legendCancel = document.getElementById('legendCancel');
+    const legendClose = document.getElementById('legendClose');
+
+    let items = [];
+    let idCounter = 0;
+    let pendingFiles = [];
+
+    function showToast(message, detail = '') {
+      const toast = document.createElement('div');
+      toast.className = 'notice';
+      toast.innerHTML = `
+        <div class="badge"></div>
+        <div>
+          <p>${message}</p>
+          ${detail ? `<span>${detail}</span>` : ''}
+        </div>
+      `;
+      toastArea.appendChild(toast);
+      setTimeout(() => toast.remove(), 3400);
+    }
+
+    function updateCounter() {
+      countChip.textContent = `${items.length} ${items.length === 1 ? 'imagem' : 'imagens'}`;
+      emptyState.style.display = items.length ? 'none' : 'grid';
+    }
+
+    function renderGallery() {
+      const query = searchInput.value.trim().toLowerCase();
+      const cards = gallery.querySelectorAll('.gallery-card');
+      cards.forEach(card => card.remove());
+
+      const filtered = items.filter(item => item.title.toLowerCase().includes(query));
+
+      filtered.forEach((item, index) => {
+        const card = document.createElement('article');
+        card.className = 'gallery-card';
+        card.style.animationDelay = `${Math.min(index * 55, 300)}ms`;
+        card.dataset.id = item.id;
+        card.innerHTML = `
+          <div class="image-wrap">
+            <img src="${item.url}" alt="${item.title || 'Imagem da galeria'}" />
+            <div class="overlay"></div>
+            <div class="card-info">
+              <div class="title-row">
+                <h3>${item.title}</h3>
+              </div>
+              <small>${new Date(item.createdAt).toLocaleString('pt-BR')}</small>
+              <div class="card-actions">
+                <button class="mini-btn view-btn" type="button">Ver</button>
+                <button class="mini-btn danger delete-btn" type="button">Excluir</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.delete-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteItem(item.id);
+        });
+
+        card.querySelector('.view-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openViewer(item);
+        });
+
+        card.addEventListener('click', () => openViewer(item));
+        gallery.appendChild(card);
+      });
+
+      updateCounter();
+    }
+
+    function buildLegendForm(files) {
+      legendList.innerHTML = '';
+      files.forEach((file, index) => {
+        const row = document.createElement('div');
+        row.className = 'legend-item';
+        row.innerHTML = `
+          <label for="legend-${index}">${file.name}</label>
+          <input
+            id="legend-${index}"
+            class="legend-input"
+            type="text"
+            placeholder="Digite a legenda"
+            autocomplete="off"
+            data-index="${index}"
+          />
+        `;
+        legendList.appendChild(row);
+      });
+      legendModal.classList.add('open');
+      legendModal.setAttribute('aria-hidden', 'false');
+      setTimeout(() => legendList.querySelector('input')?.focus(), 0);
+    }
+
+    function closeLegendModal() {
+      legendModal.classList.remove('open');
+      legendModal.setAttribute('aria-hidden', 'true');
+      pendingFiles = [];
+      legendList.innerHTML = '';
+    }
+
+    function addFiles(files) {
+      const list = Array.from(files || []).filter(file => file.type.startsWith('image/'));
+      if (!list.length) {
+        showToast('Nenhuma imagem selecionada.', 'Escolha pelo menos um arquivo de imagem.');
+        return;
+      }
+
+      pendingFiles = list.map(file => ({
+        file,
+        url: URL.createObjectURL(file)
+      }));
+
+      buildLegendForm(pendingFiles);
+    }
+
+    function savePendingFiles() {
+      const inputs = Array.from(legendList.querySelectorAll('.legend-input'));
+      const nextItems = [];
+      let invalid = false;
+
+      inputs.forEach((input, index) => {
+        const title = input.value.trim();
+        if (!title) {
+          invalid = true;
+          input.focus();
+          input.style.borderColor = 'rgba(255,255,255,0.65)';
+          return;
+        }
+
+        const entry = pendingFiles[index];
+        nextItems.push({
+          id: `${Date.now()}-${idCounter++}`,
+          title,
+          url: entry.url,
+          fileName: entry.file.name,
+          createdAt: Date.now()
+        });
+      });
+
+      if (invalid) {
+        showToast('Preencha todas as legendas.', 'Cada imagem precisa de um título antes de entrar na galeria.');
+        return;
+      }
+
+      items = [...nextItems.reverse(), ...items];
+      showToast(`${nextItems.length} ${nextItems.length === 1 ? 'imagem adicionada' : 'imagens adicionadas'}.`, 'A galeria foi atualizada.');
+      closeLegendModal();
+      renderGallery();
+      fileInput.value = '';
+    }
+
+    function deleteItem(id) {
+      const index = items.findIndex(item => item.id === id);
+      if (index === -1) return;
+      const removed = items[index];
+      URL.revokeObjectURL(removed.url);
+      items.splice(index, 1);
+      showToast('Imagem excluída.', removed.title || 'Removida da galeria.');
+      renderGallery();
+    }
+
+    function clearGallery() {
+      if (!items.length) {
+        showToast('A galeria já está vazia.');
+        return;
+      }
+      if (!confirm('Deseja excluir todas as imagens da galeria?')) return;
+      items.forEach(item => URL.revokeObjectURL(item.url));
+      items = [];
+      showToast('Galeria limpa.', 'Todas as imagens foram removidas.');
+      renderGallery();
+    }
+
+    function openViewer(item) {
+      viewerImg.src = item.url;
+      viewerTitle.textContent = item.title || 'Sem título';
+      viewer.classList.add('open');
+      viewer.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeViewer() {
+      viewer.classList.remove('open');
+      viewer.setAttribute('aria-hidden', 'true');
+      viewerImg.src = '';
+    }
+
+    addBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+    clearBtn.addEventListener('click', clearGallery);
+    searchInput.addEventListener('input', renderGallery);
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.style.transform = 'scale(1.01)';
+        dropzone.style.borderColor = 'rgba(255,255,255,0.38)';
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.style.transform = 'scale(1)';
+        dropzone.style.borderColor = 'rgba(255,255,255,0.12)';
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      addFiles(e.dataTransfer.files);
+    });
+
+    legendSave.addEventListener('click', savePendingFiles);
+    legendCancel.addEventListener('click', closeLegendModal);
+    legendClose.addEventListener('click', closeLegendModal);
+
+    legendModal.addEventListener('click', (e) => {
+      if (e.target === legendModal) closeLegendModal();
+    });
+
+    viewerClose.addEventListener('click', closeViewer);
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) closeViewer();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeViewer();
+        closeLegendModal();
+      }
+    });
+
+    updateCounter();
+  </script>
+</body>
+</html>
